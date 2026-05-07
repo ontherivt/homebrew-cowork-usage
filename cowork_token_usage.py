@@ -1035,6 +1035,8 @@ def session_id_from_path(p: Path, name: str = "") -> str:
 
 
 def main() -> int:
+    # Load config file once, up front, so any argparse defaults can read from it.
+    _config = _load_config_file()
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--root", type=Path, default=DEFAULT_ROOT,
                     help=f"sessions root (default: {DEFAULT_ROOT})")
@@ -1072,17 +1074,22 @@ def main() -> int:
     ap.add_argument("--detailed", action="store_true",
                     help="show the full per-session tables instead of the "
                          "clean summary report (the report is the default)")
-    ap.add_argument("--discount", type=float, default=50.0, metavar="PCT",
-                    help="apply a flat percent discount to all cost estimates "
-                         "(e.g. --discount 50 halves the numbers). Defaults "
-                         "to 50 because that's what reconciles list price with "
-                         "actual Anthropic Console billing for our org's plan. "
-                         "Set --discount 0 to see raw list-price numbers.")
+    ap.add_argument(
+        "--discount", type=float,
+        default=float(_resolve("COWORK_DISCOUNT_PCT", _config) or 0.0),
+        metavar="PCT",
+        help="apply a flat percent discount to all cost estimates "
+             "(e.g. --discount 50 halves the numbers). Reads "
+             "COWORK_DISCOUNT_PCT from env or ~/.config/cowork-usage/config.env "
+             "if set; otherwise defaults to 0 (raw list price — matches the "
+             "common case where you're billed at standard Bedrock rates). "
+             "To calibrate to your actual billing: run with --discount 0, "
+             "compare to your Anthropic Console for the same period, then "
+             "set the discount to (1 - actual/list) × 100.")
     ap.add_argument("--analyze", action="store_true",
                     help="POST the summary to the cowork-analyzer Lambda and "
                          "show AI-generated cost-reduction tips. Reads URL/token "
                          "from $COWORK_ANALYZER_URL / $COWORK_ANALYZER_TOKEN.")
-    _config = _load_config_file()
     ap.add_argument("--analyzer-url", default=_resolve("COWORK_ANALYZER_URL", _config),
                     help="override the analyzer Lambda URL "
                          "(default: $COWORK_ANALYZER_URL or config file)")

@@ -30,6 +30,18 @@ if [ ! -f "$CONFIG_FILE" ]; then
 # If the URL changes, run:
 #   rm "$CONFIG_FILE" && brew reinstall cowork-usage
 COWORK_ANALYZER_URL=__ANALYZER_URL__
+
+# Cost discount calibration. The script multiplies all reported costs by
+# (1 - this_value/100). Default is 0 (raw list price) because the right
+# value depends on your org's Anthropic plan, AWS Bedrock tier, and other
+# factors that vary per user.
+#
+# To calibrate to your actual billing:
+#   1. cowork-usage --discount 0       (raw list-price estimate)
+#   2. Compare to your Anthropic Console for the same 7-day window
+#   3. discount_pct = (1 - actual/list) × 100
+#      Edit this line with that value.
+COWORK_DISCOUNT_PCT=0
 EOF
   chmod 0600 "$CONFIG_FILE"
 fi
