@@ -1,13 +1,13 @@
 class CoworkUsage < Formula
   desc "Cost report + AI cost-reduction tips for Claude Cowork sessions"
-  homepage "https://github.com/YOUR_ORG/homebrew-cowork-usage"
+  homepage "https://github.com/ontherivt/homebrew-cowork-usage"
 
   # The formula and the script live in the SAME repo (this one). `url` points
   # to this repo's own release tarball. Bump `url`, `version`, and `sha256`
   # together every time you cut a new release.
-  url "https://github.com/YOUR_ORG/homebrew-cowork-usage/archive/refs/tags/v0.1.0.tar.gz"
+  url "https://github.com/ontherivt/homebrew-cowork-usage/archive/refs/tags/v0.1.0.tar.gz"
   version "0.1.0"
-  sha256 "REPLACE_WITH_SHA256_OF_RELEASE_TARBALL"
+  sha256 "0019dfc4b32d63c1392aa264aed2253c1e0c2fb09216f8e2cc269bbfb8bb49b5"
 
   license "MIT"
 
