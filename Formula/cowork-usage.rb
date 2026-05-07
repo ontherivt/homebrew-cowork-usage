@@ -7,7 +7,7 @@ class CoworkUsage < Formula
   # together every time you cut a new release.
   url "https://github.com/ontherivt/homebrew-cowork-usage/archive/refs/tags/v0.1.0.tar.gz"
   version "0.1.0"
-  sha256 "207ac94cf57d4623ff9e0f49b9c48f455dd8176447fd75ef9d7127d33e23083c"
+  sha256 "REPLACE_WITH_SHA256_OF_RELEASE_TARBALL"
 
   license "MIT"
 
@@ -16,16 +16,23 @@ class CoworkUsage < Formula
   # the Bedrock daily spend cap configured in the AWS account.
   ANALYZER_URL = "https://ssfcaxjqbj5rar4synctd3inoa0cqwlw.lambda-url.us-east-1.on.aws/".freeze
 
-  # The script is stdlib-only Python 3.7+. Homebrew's bundled python@3.12 is
-  # fine; declaring the dep keeps `brew test` happy.
-  depends_on "python@3.12"
+  # The script is stdlib-only and works on Python 3.9+. We don't pull in
+  # python@3.12 because most users already have a system or pyenv Python that
+  # works fine, and the bottle is ~18MB. The shim uses `/usr/bin/env python3`
+  # so it picks up whatever's first on PATH. If the user has no python3 at
+  # all, the shim fails with a clear message instead of silently breaking.
 
   def install
     libexec.install "cowork_token_usage.py"
-    # Wrapper so `cowork-usage` is the user-facing command name.
     (bin/"cowork-usage").write <<~SHIM
       #!/bin/bash
-      exec "#{Formula["python@3.12"].opt_bin}/python3" "#{libexec}/cowork_token_usage.py" "$@"
+      if ! command -v python3 >/dev/null 2>&1; then
+        echo "cowork-usage requires Python 3.9 or newer." >&2
+        echo "Install with: brew install python@3.12" >&2
+        echo "  (or: xcode-select --install for the Apple-bundled Python)" >&2
+        exit 1
+      fi
+      exec python3 "#{libexec}/cowork_token_usage.py" "$@"
     SHIM
     (bin/"cowork-usage").chmod 0755
   end
