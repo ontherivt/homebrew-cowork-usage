@@ -5,9 +5,9 @@ class CoworkUsage < Formula
   # The formula and the script live in the SAME repo (this one). `url` points
   # to this repo's own release tarball. Bump `url`, `version`, and `sha256`
   # together every time you cut a new release.
-  url "https://github.com/ontherivt/homebrew-cowork-usage/archive/refs/tags/v0.1.7.tar.gz"
-  version "0.1.7"
-  sha256 "2be01278a69afeefaeb7715973eb8d5044bc54a18dcf071ae192241e4774b3b3"
+  url "https://github.com/ontherivt/homebrew-cowork-usage/archive/refs/tags/v0.1.8.tar.gz"
+  version "0.1.8"
+  sha256 "e2e675bd8ad6543abb7020aaf12c882f030ece348c522b315aa9b1f128745aa3"
 
   license "MIT"
 
