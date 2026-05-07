@@ -5,9 +5,9 @@ class CoworkUsage < Formula
   # The formula and the script live in the SAME repo (this one). `url` points
   # to this repo's own release tarball. Bump `url`, `version`, and `sha256`
   # together every time you cut a new release.
-  url "https://github.com/ontherivt/homebrew-cowork-usage/archive/refs/tags/v0.1.4.tar.gz"
-  version "0.1.4"
-  sha256 "24afa533b0540f3f739ac800757961e22b71feb2143c7e5363aa1ee1085ed48c"
+  url "https://github.com/ontherivt/homebrew-cowork-usage/archive/refs/tags/v0.1.3.tar.gz"
+  version "0.1.3"
+  sha256 "1dfcaa8fd4e5cc52ede2be7146909e590bdc2bfbd1a1ff1b5dc91467207cfea8"
 
   license "MIT"
 
@@ -25,10 +25,9 @@ class CoworkUsage < Formula
   def install
     libexec.install "cowork_token_usage.py"
     # The wrapper bakes the analyzer URL in as an env var and writes the
-    # user's config file on first invocation. This avoids running install-time
-    # logic that touches the user's $HOME (which Homebrew's post_install
-    # sandbox doesn't always allow).
-    (bin/"cowork-usage").write <<~SHIM
+    # user's config file on first invocation. Avoids post_install sandbox
+    # restrictions on writing to $HOME.
+    shim = <<~SHIM
       #!/bin/bash
       set -e
       if ! command -v python3 >/dev/null 2>&1; then
@@ -37,7 +36,6 @@ class CoworkUsage < Formula
         echo "  (or: xcode-select --install for the Apple-bundled Python)" >&2
         exit 1
       fi
-      # Seed ~/.config/cowork-usage/config.env on first run, then forget about it.
       CONFIG_DIR="${HOME}/.config/cowork-usage"
       CONFIG_FILE="${CONFIG_DIR}/config.env"
       if [ ! -f "$CONFIG_FILE" ]; then
@@ -51,7 +49,12 @@ EOF
       fi
       exec python3 "#{libexec}/cowork_token_usage.py" "$@"
     SHIM
-    (bin/"cowork-usage").chmod 0755
+    # Write to a tmp file with executable mode, then install it into bin.
+    # `bin.install` preserves the source file's mode bits, which is more
+    # reliable than calling chmod on the final destination after .write.
+    (buildpath/"cowork-usage").write shim
+    (buildpath/"cowork-usage").chmod 0755
+    bin.install "cowork-usage"
   end
 
   def caveats
