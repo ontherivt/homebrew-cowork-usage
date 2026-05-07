@@ -1,0 +1,37 @@
+#!/bin/bash
+# cowork-usage — entry-point wrapper installed by Homebrew.
+#
+# At install time, the formula substitutes:
+#   __ANALYZER_URL__  → the analyzer Lambda URL for this org
+#   __LIBEXEC__       → absolute path to the Cellar libexec dir containing
+#                       cowork_token_usage.py
+#
+# This file MUST be committed to the repo with the executable bit set
+# (`chmod +x cowork-usage && git update-index --chmod=+x cowork-usage`)
+# so that `bin.install` in the formula preserves +x through the
+# Homebrew install pipeline.
+
+set -e
+
+if ! command -v python3 >/dev/null 2>&1; then
+  echo "cowork-usage requires Python 3.9 or newer." >&2
+  echo "  Install with:  brew install python@3.12" >&2
+  echo "  Or run:        xcode-select --install" >&2
+  exit 1
+fi
+
+# Seed ~/.config/cowork-usage/config.env on first run, then leave it alone.
+CONFIG_DIR="${HOME}/.config/cowork-usage"
+CONFIG_FILE="${CONFIG_DIR}/config.env"
+if [ ! -f "$CONFIG_FILE" ]; then
+  mkdir -p "$CONFIG_DIR"
+  cat > "$CONFIG_FILE" <<EOF
+# Cowork analyzer config — written by cowork-usage on first run.
+# If the URL changes, run:
+#   rm "$CONFIG_FILE" && brew reinstall cowork-usage
+COWORK_ANALYZER_URL=__ANALYZER_URL__
+EOF
+  chmod 0600 "$CONFIG_FILE"
+fi
+
+exec python3 "__LIBEXEC__/cowork_token_usage.py" "$@"
