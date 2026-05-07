@@ -24,36 +24,34 @@ class CoworkUsage < Formula
 
   def install
     libexec.install "cowork_token_usage.py"
+    # The wrapper bakes the analyzer URL in as an env var and writes the
+    # user's config file on first invocation. This avoids running install-time
+    # logic that touches the user's $HOME (which Homebrew's post_install
+    # sandbox doesn't always allow).
     (bin/"cowork-usage").write <<~SHIM
       #!/bin/bash
+      set -e
       if ! command -v python3 >/dev/null 2>&1; then
         echo "cowork-usage requires Python 3.9 or newer." >&2
         echo "Install with: brew install python@3.12" >&2
         echo "  (or: xcode-select --install for the Apple-bundled Python)" >&2
         exit 1
       fi
+      # Seed ~/.config/cowork-usage/config.env on first run, then forget about it.
+      CONFIG_DIR="${HOME}/.config/cowork-usage"
+      CONFIG_FILE="${CONFIG_DIR}/config.env"
+      if [ ! -f "$CONFIG_FILE" ]; then
+        mkdir -p "$CONFIG_DIR"
+        cat > "$CONFIG_FILE" <<EOF
+# Cowork analyzer config — written by cowork-usage on first run.
+# If the URL changes, run:  rm "$CONFIG_FILE" && brew reinstall cowork-usage
+COWORK_ANALYZER_URL=#{ANALYZER_URL}
+EOF
+        chmod 0600 "$CONFIG_FILE"
+      fi
       exec python3 "#{libexec}/cowork_token_usage.py" "$@"
     SHIM
     (bin/"cowork-usage").chmod 0755
-  end
-
-  def post_install
-    config_dir = Pathname.new(Dir.home) / ".config" / "cowork-usage"
-    config_dir.mkpath
-    config_file = config_dir / "config.env"
-    # Don't clobber an existing config — users may have hand-edited it.
-    # If you need to force-update tokens for everyone, bump the formula
-    # version and have users re-run `brew reinstall cowork-usage`, OR
-    # have them manually delete config.env first.
-    return if config_file.exist?
-
-    config_file.write <<~CONFIG
-      # Cowork analyzer config — written by Homebrew on first install.
-      # If the URL changes, run:
-      #   rm ~/.config/cowork-usage/config.env && brew reinstall cowork-usage
-      COWORK_ANALYZER_URL=#{ANALYZER_URL}
-    CONFIG
-    config_file.chmod 0600
   end
 
   def caveats
