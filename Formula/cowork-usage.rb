@@ -5,9 +5,9 @@ class CoworkUsage < Formula
   # The formula and the script live in the SAME repo (this one). `url` points
   # to this repo's own release tarball. Bump `url`, `version`, and `sha256`
   # together every time you cut a new release.
-  url "https://github.com/ontherivt/homebrew-cowork-usage/archive/refs/tags/v0.1.6.tar.gz"
-  version "0.1.6"
-  sha256 "8f126fec9df3cac5acbe43725c3432331a9caa7247a519dbe7a54faaac4ba83d"
+  url "https://github.com/ontherivt/homebrew-cowork-usage/archive/refs/tags/v0.1.3.tar.gz"
+  version "0.1.3"
+  sha256 "1dfcaa8fd4e5cc52ede2be7146909e590bdc2bfbd1a1ff1b5dc91467207cfea8"
 
   license "MIT"
 
@@ -24,37 +24,12 @@ class CoworkUsage < Formula
 
   def install
     libexec.install "cowork_token_usage.py"
-    # The wrapper bakes the analyzer URL in as an env var and writes the
-    # user's config file on first invocation. Avoids post_install sandbox
-    # restrictions on writing to $HOME.
-    shim_path = bin/"cowork-usage"
-    shim_path.write <<~SHIM
-      #!/bin/bash
-      set -e
-      if ! command -v python3 >/dev/null 2>&1; then
-        echo "cowork-usage requires Python 3.9 or newer." >&2
-        echo "Install with: brew install python@3.12" >&2
-        echo "  (or: xcode-select --install for the Apple-bundled Python)" >&2
-        exit 1
-      fi
-      CONFIG_DIR="${HOME}/.config/cowork-usage"
-      CONFIG_FILE="${CONFIG_DIR}/config.env"
-      if [ ! -f "$CONFIG_FILE" ]; then
-        mkdir -p "$CONFIG_DIR"
-        cat > "$CONFIG_FILE" <<EOF
-# Cowork analyzer config — written by cowork-usage on first run.
-# If the URL changes, run:  rm "$CONFIG_FILE" && brew reinstall cowork-usage
-COWORK_ANALYZER_URL=#{ANALYZER_URL}
-EOF
-        chmod 0600 "$CONFIG_FILE"
-      fi
-      exec python3 "#{libexec}/cowork_token_usage.py" "$@"
-    SHIM
-    # Shell out to the system chmod. We tried Pathname#chmod 0755 here
-    # previously and it silently didn't stick — Homebrew's install pipeline
-    # apparently overrides Pathname-level mode changes on files in bin/.
-    # `system "/bin/chmod"` is the bulletproof fallback.
-    system "/bin/chmod", "+x", shim_path
+    bin.install "cowork-usage"
+    # The wrapper ships from the repo with `chmod +x` committed in git, so
+    # bin.install preserves the executable bit. Two placeholders get
+    # substituted with install-time values:
+    inreplace bin/"cowork-usage", "__ANALYZER_URL__", ANALYZER_URL
+    inreplace bin/"cowork-usage", "__LIBEXEC__", libexec.to_s
   end
 
   def caveats
