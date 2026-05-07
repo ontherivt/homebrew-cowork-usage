@@ -5,9 +5,9 @@ class CoworkUsage < Formula
   # The formula and the script live in the SAME repo (this one). `url` points
   # to this repo's own release tarball. Bump `url`, `version`, and `sha256`
   # together every time you cut a new release.
-  url "https://github.com/ontherivt/homebrew-cowork-usage/archive/refs/tags/v0.1.5.tar.gz"
-  version "0.1.5"
-  sha256 "5c106a97ae8c8e4391a689a6f1a3bf7b0682dfd24651a576a5855b1c6cbd9b62"
+  url "https://github.com/ontherivt/homebrew-cowork-usage/archive/refs/tags/v0.1.3.tar.gz"
+  version "0.1.3"
+  sha256 "1dfcaa8fd4e5cc52ede2be7146909e590bdc2bfbd1a1ff1b5dc91467207cfea8"
 
   license "MIT"
 
@@ -27,7 +27,8 @@ class CoworkUsage < Formula
     # The wrapper bakes the analyzer URL in as an env var and writes the
     # user's config file on first invocation. Avoids post_install sandbox
     # restrictions on writing to $HOME.
-    shim = <<~SHIM
+    shim_path = bin/"cowork-usage"
+    shim_path.write <<~SHIM
       #!/bin/bash
       set -e
       if ! command -v python3 >/dev/null 2>&1; then
@@ -49,12 +50,11 @@ EOF
       fi
       exec python3 "#{libexec}/cowork_token_usage.py" "$@"
     SHIM
-    # Write to a tmp file with executable mode, then install it into bin.
-    # `bin.install` preserves the source file's mode bits, which is more
-    # reliable than calling chmod on the final destination after .write.
-    (buildpath/"cowork-usage").write shim
-    (buildpath/"cowork-usage").chmod 0755
-    bin.install "cowork-usage"
+    # Shell out to the system chmod. We tried Pathname#chmod 0755 here
+    # previously and it silently didn't stick — Homebrew's install pipeline
+    # apparently overrides Pathname-level mode changes on files in bin/.
+    # `system "/bin/chmod"` is the bulletproof fallback.
+    system "/bin/chmod", "+x", shim_path
   end
 
   def caveats
