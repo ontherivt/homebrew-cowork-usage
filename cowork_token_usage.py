@@ -31,10 +31,12 @@ from __future__ import annotations
 
 import argparse
 import csv
+import itertools
 import json
 import os
 import sys
 import textwrap
+import threading
 import time
 import urllib.error
 import urllib.request
@@ -75,6 +77,54 @@ def _load_config_file() -> dict[str, str]:
 def _resolve(name: str, config: dict[str, str]) -> str:
     """Resolution order for analyzer URL/token: env var > config file > empty."""
     return os.environ.get(name) or config.get(name, "")
+
+
+class _Spinner:
+    """Render an animated progress indicator on stderr while a long task runs.
+
+    Used as a context manager:
+        with _Spinner("Analyzing your usage"):
+            slow_blocking_call()
+
+    Behavior:
+        * On a TTY: animates ".", ". .", ". . ." in place every 0.5s
+        * Non-TTY (piped output, CI): prints the message once and exits silently
+        * Always cleans up on __exit__ — even on exception — so the report
+          that follows isn't garbled.
+    """
+    def __init__(self, message: str):
+        self.message = message
+        self._stop = threading.Event()
+        self._thread: threading.Thread | None = None
+        self._tty = sys.stderr.isatty()
+
+    def __enter__(self) -> "_Spinner":
+        if not self._tty:
+            print(f"  {self.message}...", file=sys.stderr, flush=True)
+            return self
+        self._thread = threading.Thread(target=self._spin, daemon=True)
+        self._thread.start()
+        return self
+
+    def __exit__(self, *exc) -> None:
+        self._stop.set()
+        if self._thread:
+            self._thread.join(timeout=1.0)
+        if self._tty:
+            # Carriage return + clear-to-end-of-line, so the next print
+            # starts at column 0 with no leftover dots.
+            sys.stderr.write("\r\033[K")
+            sys.stderr.flush()
+
+    def _spin(self) -> None:
+        frames = [".      ", ".  .   ", ".  .  ."]
+        for frame in itertools.cycle(frames):
+            if self._stop.is_set():
+                return
+            sys.stderr.write(f"\r\033[K  {self.message}  {frame}")
+            sys.stderr.flush()
+            if self._stop.wait(0.5):
+                return
 
 USAGE_KEYS = (
     "input_tokens",
@@ -1239,9 +1289,10 @@ def main() -> int:
                     rows, by_title, grand, pricing, args.cache_ttl,
                     period_label, args.days, args.discount,
                 )
-                ai_tips, ai_critiques, ai_error = call_analyzer_service(
-                    summary, args.analyzer_url, args.analyzer_token,
-                )
+                with _Spinner("Asking Claude for cost-reduction tips"):
+                    ai_tips, ai_critiques, ai_error = call_analyzer_service(
+                        summary, args.analyzer_url, args.analyzer_token,
+                    )
         render_report(rows, by_title, grand, pricing, args.cache_ttl,
                       period_label, period_days=args.days,
                       discount_pct=args.discount,
