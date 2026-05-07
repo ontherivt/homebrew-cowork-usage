@@ -7,7 +7,7 @@ class CoworkUsage < Formula
   # together every time you cut a new release.
   url "https://github.com/ontherivt/homebrew-cowork-usage/archive/refs/tags/v0.1.2.tar.gz"
   version "0.1.2"
-  sha256 "REPLACE_WITH_SHA256_OF_RELEASE_TARBALL"
+  sha256 "6c3655e9bce3a07fc15d8fb00f9f1acbb805074cbc82b38c677b3b7fe798ff2c"
 
   license "MIT"
 
